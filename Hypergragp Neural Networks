@@ -1,0 +1,167 @@
+Hypergraph neural networks (HGNNs) are neural networks for data in which relationships involve **groups**, not only pairs. They learn by repeatedly passing information from nodes to the hyperedges that contain them, then from those hyperedges back to their member nodes—capturing higher-order patterns such as “these five people attended the same event.”[1][2]
+
+## From GNNs to HGNNs
+
+A standard graph neural network assumes every edge joins two nodes:
+
+\[
+\text{node } i \longleftrightarrow \text{node } j
+\]
+
+It updates a node by aggregating messages from its immediate neighbors.
+
+An HGNN instead operates on a hypergraph, where one hyperedge may contain many nodes:
+
+\[
+e = \{v_1,v_2,\ldots,v_k\}
+\]
+
+So it can preserve a genuine group relationship. For example, if a research paper has authors Alice, Ben, Clara, and Diego, an HGNN can treat that paper as one four-author hyperedge rather than reducing it to six separate coauthor pairs. That retains the context that all four authors collaborated on the *same* work.
+
+## Core message-passing cycle
+
+Most HGNN layers use a two-stage process:
+
+1. **Node → hyperedge.** For every hyperedge, combine the feature vectors of all nodes belonging to it. This produces a representation of the group.
+2. **Hyperedge → node.** For every node, combine the representations of every hyperedge it belongs to. This produces an updated node embedding.
+3. Apply a learned linear transformation and a nonlinearity, then repeat for additional layers.
+
+In simplified notation, with node embedding \(x_v^{(\ell)}\) at layer \(\ell\):
+
+\[
+z_e^{(\ell)} =
+\operatorname{AGG}_{v \in e}
+\left(x_v^{(\ell)}\right)
+\]
+
+\[
+x_v^{(\ell+1)} =
+\sigma\left(
+\operatorname{AGG}_{e \ni v}
+\left(z_e^{(\ell)}\right)W^{(\ell)}
+\right)
+\]
+
+Here:
+
+- \(z_e\) is the representation learned for hyperedge \(e\)
+- \(\operatorname{AGG}\) is usually a permutation-invariant operation such as a sum, mean, max, attention-weighted sum, or learned set function
+- \(W^{(\ell)}\) is a trainable weight matrix
+- \(\sigma\) is a nonlinear activation such as ReLU
+
+The key requirement is that aggregation should not depend on the arbitrary ordering of nodes within a hyperedge: \(\{A,B,C\}\) and \(\{C,A,B\}\) describe the same group.
+
+## Matrix form
+
+A common HGNN implementation uses the **incidence matrix** \(H\):
+
+\[
+H_{ve} =
+\begin{cases}
+1 & \text{if node } v \text{ belongs to hyperedge } e \\
+0 & \text{otherwise}
+\end{cases}
+\]
+
+The classic HGNN layer proposed by Feng and colleagues is:
+
+\[
+X^{(\ell+1)}
+=
+\sigma\left(
+D_v^{-1/2}
+H
+W_e
+D_e^{-1}
+H^\top
+D_v^{-1/2}
+X^{(\ell)}
+\Theta^{(\ell)}
+\right)
+\]
+
+where:
+
+- \(X^{(\ell)}\) contains the node features at layer \(\ell\)
+- \(H^\top\) moves information from nodes into hyperedges
+- \(D_e^{-1}\) normalizes by hyperedge size, preventing a very large group from automatically dominating
+- \(W_e\) can weight the importance of each hyperedge
+- \(H\) sends the group information back to member nodes
+- \(D_v^{-1/2}\) normalizes for the number of hyperedges incident to each node
+- \(\Theta^{(\ell)}\) is a learned feature transformation
+
+This equation is effectively a normalized node → hyperedge → node propagation step.[3]
+
+## Worked intuition
+
+Suppose three people are represented by initial feature vectors:
+
+\[
+A=[1,0], \qquad B=[0,1], \qquad C=[1,1]
+\]
+
+and they share a hyperedge:
+
+\[
+e_1=\{A,B,C\}
+\]
+
+A mean-aggregation version of node-to-hyperedge messaging gives:
+
+\[
+z_{e_1}
+=
+\frac{A+B+C}{3}
+=
+\left[\frac{2}{3},\frac{2}{3}\right]
+\]
+
+That group representation is then sent back to \(A\), \(B\), and \(C\). Each node’s next embedding therefore incorporates information about the entire group rather than information from just one partner at a time.
+
+If \(A\) also belongs to another hyperedge—say a project team \(e_2=\{A,D,E\}\)—then its next representation combines signals from both the first group and the project team. Across layers, information can travel through overlapping groups.
+
+## What the network learns
+
+During training, HGNN parameters—such as \(\Theta\), hyperedge weights, and possibly attention scores—are adjusted using backpropagation to minimize a task-specific loss. The result is an embedding for each node, and sometimes for each hyperedge too.
+
+Those embeddings can support:
+
+- **Node classification:** Predict a paper’s topic, a user’s community, or a protein’s function.
+- **Hyperedge prediction:** Predict whether a group interaction, collaboration, reaction, or session is likely to occur.
+- **Link or membership prediction:** Predict whether a node should belong to a particular group.
+- **Graph-level prediction:** Classify an entire hypergraph, for example a molecular or biological system.
+- **Recommendation and ranking:** Use group interactions such as baskets, playlists, classes, or events.
+
+The original HGNN framework was designed specifically to encode these high-order correlations through hyperedge convolution rather than restricting learning to pairwise graph connections.[1][4]
+
+## Design choices and limitations
+
+| Choice | Effect |
+|---|---|
+| Mean/sum pooling | Simple, efficient group summarization, but can treat all members similarly |
+| Attention pooling | Learns which members or hyperedges matter more, at greater computational cost |
+| Hyperedge weights | Allows important groups to have more influence |
+| Multiple layers | Reaches information through overlapping hyperedges, but too many layers can blur node representations |
+| Learnable hyperedges | Useful when groups are not given and must be inferred from features or data |
+
+A central limitation is that a basic HGNN summarizes all members of a hyperedge into one shared vector. This can lose detail—for example, it may not distinguish two members’ different roles within the same group. More recent architectures address this through attention, role-aware representations, hyperedge-to-hyperedge messaging, or hyperedge-dependent node embeddings.[5][6]
+
+In short, an HGNN works like a GNN with an extra level of communication: **nodes summarize into groups, groups summarize back into nodes, and training learns which group-level signals are useful for the task.**
+
+Sources
+[1] Hypergraph Neural Networks https://ojs.aaai.org/index.php/AAAI/article/view/4235
+[2] Hypergraph neural networks with holistic message passing https://www.sciencedirect.com/science/article/abs/pii/S1568494626006149
+[3] Hypergraph Neural Networks https://ojs.aaai.org/index.php/AAAI/article/view/4235/4113
+[4] Hypergraph neural networks https://dl.acm.org/doi/10.1609/aaai.v33i01.33013558
+[5] Hypergraph Neural Networks through the Lens of Message ... https://openreview.net/forum?id=YPpkFqMX6V
+[6] Hyperedge Interaction-aware Hypergraph Neural Network https://arxiv.org/pdf/2401.15587.pdf
+[7] Hypergraph https://en.wikipedia.org/wiki/Hypergraph
+[8] Node Classification Method Based on Hierarchical ... - PMC https://pmc.ncbi.nlm.nih.gov/articles/PMC11645074/
+[9] Higher-Order Learning with Graph Neural Networks via ... https://neurips.cc/virtual/2025/poster/116020
+[10] Hypergraph Neural Network Methods in Graph-Based ... https://www.nature.com/nature-index/topics/l4/hypergraph-neural-network-methods-in-graph-based-learning
+[11] Hypergraph Neural Architecture Search https://ojs.aaai.org/index.php/AAAI/article/view/29290/30432
+[12] Hypergraph Node Representation Learning with One- ... https://papers.ssrn.com/sol3/Delivery.cfm/721d9084-9156-4926-8cc5-1df3c646b1de-MECA.pdf?abstractid=5128689
+[13] iMoonLab/HGNN: Hypergraph Neural Networks (AAAI 2019) https://github.com/iMoonLab/HGNN
+[14] Hypergraph neural networks https://bibbase.org/network/publication/feng-you-zhang-ji-gao-hypergraphneuralnetworks-2019
+[15] CUK Seminar: S.T.Nguyen, Review on "Hypergraph Neural ... https://www.slideshare.net/slideshow/ns-cuk-seminar-stnguyen-review-on-hypergraph-neural-networks-aaai-2019/258032163
+[16] Hypergraph Neural Networks https://www.emergentmind.com/topics/hypergraph-neural-network
