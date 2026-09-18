@@ -13,28 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Welcome.md",
+                "file": "README.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Welcome"
-            }
-          }
-        ]
-      },
-      {
-        "id": "84db9c76743f5aa6",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "f2a986d7f75e8769",
-            "type": "leaf",
-            "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "title": "README"
             }
           }
         ]
@@ -115,7 +99,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Welcome.md",
+                "file": "README.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -134,7 +118,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Welcome.md",
+                "file": "README.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
@@ -177,7 +161,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Welcome.md",
+                "file": "README.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -206,10 +190,13 @@
   },
   "active": "c9e013549dc87224",
   "lastOpenFiles": [
+    "Welcome.md",
+    "README.md",
+    "Pasted image 20260918154733.png",
+    "Pasted image 20260918154505.png",
+    "Pasted image 20260918154135.png",
     "links",
     "firstNotebook.ipynb",
-    "README.md",
-    "desktop.ini",
-    "Welcome.md"
+    "desktop.ini"
   ]
 }
